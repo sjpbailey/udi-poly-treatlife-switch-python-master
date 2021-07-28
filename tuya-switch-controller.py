@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-"""
-This is a NodeServer template for Polyglot v2 written in Python2/3
-by Einstein.42 (James Milne) milne.james@gmail.com
-"""
 try:
     import polyinterface
     from polyinterface import Controller,LOG_HANDLER,LOGGER
@@ -46,23 +42,27 @@ class Controller(polyinterface.Controller):
         self.check_params()
         #self.tuyaPlatform(self, self.uri, 'apiKey', 'apiSecret', 'Controller') #, 'uri', 'apiKey', 'apiSecret'
         self.poly.add_custom_config_docs("<b>And this is some custom config data</b>")
+        # TODO: On start this should call self.discover() to fetch all the devices
 
     #class tuyaPlatform:
     #    def __init__(REGION, KEY, SECRET, uri):
     #        self.tuyaPlatform = Device()
 
     def shortPoll(self):
-        self.discover()
+        self.discover() # TODO: This is wrong. We don't discovery on polling this should just query devices and update status
 
     def longPoll(self):
-        self.discover()
+        self.discover() # TODO: This is wrong. We don't discovery on polling this should just query devices and update status
 
     def query(self,command=None):
         self.check_params()
         for node in self.nodes:
+            # TODO: Needs to query each node self.nodes[node].query()
             self.nodes[node].reportDrivers()
     
-
+    # TODO: What's the goal here? This looks like a start to a client library wrapper to handle authentication.
+    # If so then it should be moved to a separate class to make it more portable. Although if this is trying to connect to the cloud API
+    # you could use one that already exists: https://github.com/codetheweb/tuyapi
     def tuyaPlatform(self, apiRegion, apiKey, apiSecret, uri, token=None):
         request = "https://openapi.tuya%s.com/v1.0/%s" % (apiRegion,uri)
         now = int(time.time()*1000)
@@ -102,6 +102,10 @@ class Controller(polyinterface.Controller):
     
     ## Wizard needs to run then each device found needs to be seperated as switch and light the added as each apropriate     
     #def wizard(self, command, color=True):
+        # TODO: I'm assuming this isn't supposed to be part of the tuyaPlatform method. Indentation is wrong here.
+        # This looks like a discovery method to me. But there is enough code here I would move it to a separate method
+        # within the same class as the tuyaPlatform method above. Then I would just call that method from the discovery()
+        # method in this controller to get the list of devices.
         config = {}
         config['apiKey'] = 'default_apiKey'  #'txejpdfda9iwmn5cg2es'
         config['apiSecret'] = 'default_apiSecret'   #'46d6072ffd724e0ba5ebeb5cc6b9dce9'
@@ -173,6 +177,8 @@ class Controller(polyinterface.Controller):
                 return (0, 0)
 
             polling = []
+        # TODO: Confused why all this is needed. Are we polling just the cloud based API or local devices as well?
+        # Local devices seem to be polled above in the tinytuya.deviceScan call but I'm not devices used down here
         LOGGER.info("Polling local devices...")
         for i in tuyadevices:
             item = {}
@@ -247,9 +253,15 @@ class Controller(polyinterface.Controller):
 ##### LOOP here and addNode,  add nodes as lights and switches?????????
 
     def discover(self,*args, **kwargs):    
-        
+        # TODO: This needs a list of devices and needs to loop through and add the appropriate nodes as required.
+        # Anytime you call addNode you need to make sure you use a unique device_ID.
+        # Each node needs something that makes it unique. In these I'm betting you can just use the Tuya device ID itself as it's probably already unique.
+        # e.g., self.addNode(SwitchNode1(self, self.address, device.id, device.name))
+        # TODO: It's up to you if you want to continue to use the controller as the parent grouping. I normally try to avoid
+        # tying everything to the controller as the parent. If you want it to be standalone use the same device.id in place of self.address.
+        # TODO: What is the difference between these classes? The names don't really tell me anything about what device it actually is.
         if "id" is not None:
-            self.addNode(SwitchNodes1(self, self.address, 'tuyaswitch1', 'TreatLife-1')) # need to send DEVICEID, DEVICEIP, DEVICEKEY 
+            self.addNode(SwitchNodes1(self, self.address, 'tuyaswitch1', 'TreatLife-1')) # TODO: need to send DEVICEID, DEVICEIP, DEVICEKEY
         if "id" is not None: 
             self.addNode(SwitchNodes2(self, self.address, 'tuyaswitch2', 'TreatLife-2'))
         if "id" is not None: 
@@ -270,12 +282,14 @@ class Controller(polyinterface.Controller):
     def stop(self):
         LOGGER.debug('NodeServer stopped.')
 
+    # TODO: Is this needed? If not remove it.
     def process_config(self, config):
         # this seems to get called twice for every change, why?
         # What does config represent?
         LOGGER.info("process_config: Enter config={}".format(config));
         LOGGER.info("process_config: Exit");
 
+    # TODO: Is this really needed? I know it's in the template but it feels like a duplicate of ST. Need to do some reading...
     def heartbeat(self,init=False):
         LOGGER.debug('heartbeat: init={}'.format(init))
         if init is not False:
@@ -341,7 +355,7 @@ class Controller(polyinterface.Controller):
         LANG = "en"
 
 
-
+        # TODO: All variables need to be defined under __init__
         if 'apiKey' in self.polyConfig['customParams']:
             self.key = self.polyConfig['customParams']['apiKey']
         else:
@@ -417,6 +431,7 @@ class Controller(polyinterface.Controller):
 
     ]
 
+# TODO: Each of these classes really should be moved to it's own file. The addition of them all in here makes this file long and hard to read.
 ################################################################### NEED TWO PORGRAMS ONE FOR SWITCH ONE FOR LED LIGHTS #########################################################################
 ####### Need to be able to add nodes automatacally incrementing up their Class id's????   
 ####### Switch Node Manually input ID, IP & KEY as DEVICEID, DEVICEIP, DEVICEKEY This Needs to be passed from Controller to each node added, Switch or Light???? 
@@ -425,10 +440,13 @@ class Controller(polyinterface.Controller):
 #       #DEVICEID = "017743508caab5f0973e"
 #       #DEVICEIP = "192.168.1.147"
 #       #DEVICEKEY = "e779c96c964f71b2"
+# TODO: Singular: SwitchNode1 as this class doesn't represent a set of switch nodes but one individual one.
 class SwitchNodes1(polyinterface.Node):
     def __init__(self, controller, primary, address, name): #, ip, id1, key1 key, ip, id
         super(SwitchNodes1, self).__init__(controller, primary, address, name)
-        DEVICEID = "017743508caab5f0973e"
+        # TODO: Need a variable for the client library (if required for auth) being used to query this device
+        # TODO: Should be class level variables self.name
+        DEVICEID = "017743508caab5f0973e" # TODO: There should be no defaults here. These need to be set from the parameters in __init__
         DEVICEIP = "192.168.1.147"
         DEVICEKEY = "e779c96c964f71b2"
         DEVICEVERS = "us"
@@ -442,12 +460,14 @@ class SwitchNodes1(polyinterface.Node):
         #  __init__:set_status: set_status received data={'devId': '017743508caab5f385a7', 'dps': {'1': True}, 't': 1623487883}
         #LOGGER.info("\nREADING TEST: Response %r" % data)   
     def setSwOn(self, command):        
-        
+        # TODO: Again use class level variables
         DEVICEID = "017743508caab5f0973e" #"DEVICEID"
         DEVICEIP = "192.168.1.147" #"DEVICEIP"
         DEVICEKEY =  "e779c96c964f71b2" #"DEVICEKEY"
         DEVICEVERS = "us"
         # Check for environmental variables and always use those if available
+        # TODO: Why? In a deployed node server we'd never get these from the environment. The values for an instance of this
+        # class would always come from discovery.
         DEVICEID = os.getenv("DEVICEID", DEVICEID)
         DEVICEIP = os.getenv("DEVICEIP", DEVICEIP)
         DEVICEKEY = os.getenv("DEVICEKEY", DEVICEKEY)
@@ -471,6 +491,7 @@ class SwitchNodes1(polyinterface.Node):
         # payload1=d.generate_payload(tinytuya.CONTROL, {'1': True, '2': 50})
 
     def setSwOff(self, command):
+        #TODO: See above
         DEVICEID = "017743508caab5f0973e"
         DEVICEIP = "192.168.1.147"
         DEVICEKEY = "e779c96c964f71b2"
@@ -492,8 +513,10 @@ class SwitchNodes1(polyinterface.Node):
         d.set_version(3.3)
         LOGGER.info('    Turn Switch 1 Off')
         d.turn_off()
-        self.setDriver('GV2', 0)
 
+        # TODO: Setting the driver is one way to update the ISY but after a state change I tend to like to query to device
+        # instead. It ensures that the state you report isn't different from what actually happened.
+        self.setDriver('GV2', 0)
         ############ Need to figure out Status of Device to Driver for actual Status of Devices! #################
         # __init__:_decode_payload: decoded results='{"devId":"017743508caab5f385a7","dps":{"1":true},"t":1623487883}'
         #  __init__:set_status: set_status received data={'devId': '017743508caab5f385a7', 'dps': {'1': True}, 't': 1623487883}
@@ -501,6 +524,8 @@ class SwitchNodes1(polyinterface.Node):
 
 
     def query(self,command=None):
+        # TODO: This needs to actually query the device and get the current state of it.
+        # It should then set the driver property
         self.reportDrivers()
 
     "Hints See: https://github.com/UniversalDevicesInc/hints"
@@ -518,7 +543,8 @@ class SwitchNodes1(polyinterface.Node):
                     'SWTOF': setSwOff,
                     'QUERY': query,
     }
-    
+
+# TODO: Separate file. See the above SwitchNodes1 for additional comments.
 ####### Switch Node Manual ID, IP & KEY input to cycle 
 class SwitchNodes2(polyinterface.Node):
     def __init__(self, controller, primary, address, name): #, ip, id1, key1 key, ip, id
